@@ -4,6 +4,7 @@ This program contains a class called "GHeap", which gives the programmer an obje
 A Heap is a kind of binary tree, made up of nodes. Each node points to two (2) other nodes, and each of those point to two (2) other nodes, etc.
 The program first allows the user to enter up to 100 different number inputs, then it will create a GHeap (like a heap, except I made it) and sort the numbers such that each parent is bigger than their two children. The program can handle numbers from one (1) to one-thousand (1000).
 
+void insertToken(GHeap& heap, int address, int newToken) - A recursive method which takes an address of a GHeap and a new token which must be sorted into it correctly to create a correct max heap. It also calls in the pointer to the GHeap in question
 GHeap maxHeapSort(int*) - Input an array on ints and put them into a heap, sorted such that the heap is a max heap.
 void printHeap(GHeap) - Print out the passed in heap in a visual manner
 int* parseInput(char*) - Takes in a cstring of numbers separated by spaces, and outputs those same numbers put into an int array. All non-numbers will be ignored.
@@ -21,56 +22,109 @@ void clearCString(char*&, int) - Clears a cstring of preallocated ram from rando
 
 #include "GHeap.h"
 
-#define LEN 100
+#define LEN 10
 #define BIGLEN 10000
 
 using namespace std;
 
+void insertToken(GHeap& heap, int address, int newToken);
 GHeap maxHeapSort(int*);
-void printHeap(GHeap);
+void printHeap(GHeap*);
 int* parseInput(char*);
-char* getInput(bool*&);
+char* getInput(bool&);
 void clearCString(char*&, int);
 
 int main() {
 	
 	//Define some variables and objects that we will need throughout the program
-	bool* quit = new bool();
-	*quit = false;
+	bool quit = false;
 	
 	char* numList = new char[BIGLEN];
-	clearCString(numList, BIGLEN);
 	
 	cout << "Welcome to Gregg\'s fabulous heap program" << endl;
 	
 	//The loop that the majority of the program takes place in
-	while (!(*quit)) {
-		//Get the input from the user using a series of prompts
-		numList = getInput(quit);
+	while (!quit) {
+		clearCString(numList, BIGLEN); //Clear ram from numList
+		numList = getInput(quit); //Get the input from the user using a series of prompts
 		//Quit if the quit command was run inside of getInput()
-		if (*quit) {
+		if (quit) {
 			return 0;
 		}
 		
 		//Parse the char* input into an int* with each number separated
 		int* numStream = parseInput(numList);
 		
+		//Print out the parsed input to show the user exactly what will be used in the heap
 		cout << "Input confirmed: ";
 		for (int i = 0; numStream[i] != 0; i++) cout << numStream[i] << " "; //Print all int-ified inputs
 		cout << endl << endl;
 		
+		//Ask to sort into a max heap (in case somebody wants to expand this code in the future to do things other than just max heap)
+		cout << "Sorting into max heap..." << endl;
+		GHeap heap = maxHeapSort(numStream); //Sort numStream into max heap
+		cout << endl;
+		
 		//Print current heap
-		//printHeap(heap);
+		printHeap(&heap);
 	}
 	
 	return 0;
 }
 
-GHeap maxHeapSort(int* numList) {
+void insertToken(GHeap& heap, int address, int newToken) {
+	//Replace the current token at address with input[i]
+	int oldToken = heap->getParent(address);
+	heap->setParent(address, newToken);
 	
+	//Start the cycle again if necesary
+	//If the old token wasn't 0
+	if (oldToken != 0) {
+		//If either child doesn't exist yet, set the oldToken as the new child
+		if (heap->getChild1(address) == 0) {
+			heap->setChild1(address, oldToken);
+			return;
+		}
+		if (heap->getChild2(address) == 0) {
+			heap->setChild2(address, oldToken);
+			return;
+		}
+		
+		//Otherwise, start the cycle again
+		insertToken(heap, address, oldToken);
+	}
 }
 
-void printHeap(GHeap heap) {
+GHeap maxHeapSort(int* input) {
+	
+	GHeap heap(LEN);
+	//For future reference, the "boss parent" is the very first node; the one which all others lead back to
+	//(address + 1) * 2 - 1
+	//For every token in input...
+	for (int i = 0; input[i] != 0; i++) { //i is iterator for input
+		for (int j = 0; j < LEN; j++) { //j is iterator for heap
+			//... and go through the heap from left to right until a token of lower magnitude than the current number from input is found.
+			//At which point replace the new token with the old, then recursively sort down the tree from that point.
+			if (input[i] >= heap.getParent(j)) {
+				
+				//Sort the new token and all of its children
+				insertToken(heap, j, input[i]);
+				break;
+				
+				
+			}
+		}
+	}
+	
+	
+	
+	return heap;
+}
+
+void printHeap(GHeap *heap) {
+	//A semi-okay method for displaying the heap
+	/*
+	cout << "&heap in printHeap" << heap.heap << endl;
 	bool odd = false;
 	for (int i = 0; i < LEN; i++) {
 		char child;
@@ -79,14 +133,43 @@ void printHeap(GHeap heap) {
 		else
 			child = 'b';
 		
+		cout << "After New C1: " << heap.heap[i] << endl << endl;
 		if (i == 0) {
-			cout << "Gen 1: " << heap.getParent(i) << endl;
+			cout << "Master parent: " << heap.getParent(i) << endl;
 		}
 		else {
-			cout << "Gen " << (i + 3) / 2 << child << ": " << heap.getParent(i) << endl;
+			cout << "Pair " << (i + 3) / 2 << child << ": " << heap.getParent(i) << endl;
 		}
 		odd = !odd;
+		
+		cout << "After New C2: " << heap.heap[i] << endl << endl;
 	}
+	*/
+	
+	//A much better method for displaying the heap
+	int limit = -1;
+	int generation = 0;
+	bool even = true;
+	cout << "Heap Tree: ";
+	//An algorithm for separating the generations properly
+	for (int i = 0; i < LEN; i++) {
+		//If generation is over, start a new line
+		if (i + 2 >= limit * 2 + 1) {
+			cout << endl;
+			cout << "Generation " << ++generation << ": "; //Announce the new generation
+			limit = i + 1;
+		}
+		if (!heap->isEmpty(i)) {
+			cout << heap->getParent(i) << " ";
+		}
+		//If number is even. If this is the case, then the next element in the heap is not a sibling of the current one, and must be visually separated.
+		if (even) {
+			cout << "  ";
+		}
+		even = !even; //Reverse polarity of even
+	}
+	cout << endl << endl;
+	
 }
 
 int* parseInput(char* numList) {
@@ -110,9 +193,6 @@ int* parseInput(char* numList) {
 		//If is number
 		if (numList[i] >= 48 && numList[i] <= 57) {
 			current[j] = numList[i];
-			//cout << " Current: " << current << endl;
-			//cout << " Current[" << j << "]: " << current[j];
-			//cout << " numList: " << numList[i] << endl;
 			j++;
 		}
 		//If is space
@@ -124,7 +204,7 @@ int* parseInput(char* numList) {
 				
 				//Iterate backwards through current
 				for (int l = j - 1; l >= 0; l--) {
-					//cout << "Current[" << l << "]: " << current[l] << endl;
+					//Convert the char* to int one unit place at a time by adding each value * 10^place. For example, when in the hundred's place, place = 2.
 					next += (current[l] - 48) * round(pow(10, j - l - 1));
 				}
 				//cout << "Next: " << next << endl;
@@ -145,9 +225,7 @@ int* parseInput(char* numList) {
 				//Iterate backwards through current
 				for (int l = j - 1; l >= 0; l--) {
 					//Convert the char* to int one unit place at a time by adding each value * 10^place. For example, when in the hundred's place, place = 2.
-					next += (current[l] - 48) * pow(10, j - l - 1);
-					//cout << "Pow: " << j - l << endl;
-					//cout << "Current: " << next << ", " << current[l] * pow(10, j - l) << endl;
+					next += (current[l] - 48) * round(pow(10, j - l - 1));
 				}
 				numStream[k] = next;
 				break;
@@ -159,7 +237,7 @@ int* parseInput(char* numList) {
 	return numStream;
 }
 
-char* getInput(bool*& quit) {
+char* getInput(bool& quit) {
 	
 	bool haveInput = false;
 	char cmdin[LEN];
@@ -218,7 +296,7 @@ char* getInput(bool*& quit) {
 				//Put the contents of the file into numList
 				fgets(numList, LEN, fin);
 				
-				//At this point, we have our input (numList). Now, let's confirm that it's what the user wants.
+				//At this point, we have our input (numList). Now, let's confirm that it's what the user wants before we ship it back out to the main method
 				cout << "Input: " << numList << endl;
 				cout << "Confirm Input? (y/n)" << endl;
 				cout << "> ";
@@ -239,7 +317,7 @@ char* getInput(bool*& quit) {
 		//Exit
 		else if (strcmp(cmdin, "exit") == 0 || strcmp(cmdin, "e") == 0 || strcmp(cmdin, "E") == 0) {
 			cout << "Closing program..." << endl;
-			*quit = true; //Set the bool pointer to true, which will trigger the program to end back in the main method
+			quit = true; //Set the bool pointer to true, which will trigger the program to end back in the main method
 			return NULL;
 		}
 		//Invalid command
@@ -258,3 +336,55 @@ void clearCString(char*& in, int len) {
 		in[i] = (char)0;
 	}
 }
+
+//Ignore all of this. This used to be in the maxHeapSort method.
+/*
+cout << "Position: " << j << endl;
+cout << "Old: " << heap.getParent(j) << endl;
+cout << "New: " << input[i] << endl;
+cout << "Child 1: " << heap.getChild1(j) << ", Child 2: " << heap.getChild2(j) << endl << endl;
+
+int temp = heap.getParent(j);
+heap.setParent(j, input[i]);
+
+if (temp >= heap.getChild1(j)) {
+	int temp = heap.getParent(j);
+	heap.setParent(j, input[i]);
+}
+if (temp >= heap.getChild2(j)) {
+	int temp = heap.getParent(j);
+	heap.setParent(j, input[i]);
+}
+
+//If either child doesn't exist yet, make the old token one of the new token's children
+
+if (heap.getChild1(j) == 0) {
+	heap.setChild1(j, temp);
+	
+	cout << "After New B1: " << heap.getParent(j) << endl << endl;
+	cout << "&heap" << heap.heap << endl;
+	//printHeap(heap); //Uncommenting these causes a very strange glitch
+	cout << "After New B2: " << heap.getParent(j) << endl << endl;
+	break;
+}
+else if (heap.getChild2(j) == 0) {
+	heap.setChild2(j, temp);
+	
+	cout << "After New B1: " << heap.getParent(j) << endl << endl;
+	//printHeap(heap);
+	cout << "After New B2: " << heap.getParent(j) << endl << endl;
+	break;
+}
+
+cout << "After New B: " << heap.getParent(j) << endl << endl;
+
+
+
+//Otherwise if both children already exist, then do the above test on them
+for (int k = 0; k < 10; k++) {
+	
+}
+
+
+break;
+*/

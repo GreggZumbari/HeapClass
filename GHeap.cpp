@@ -33,11 +33,23 @@ int GHeap::getChild2(int address) {
 	return heap[(address + 1) * 2];
 }
 
+bool GHeap::isEmpty(int address) {
+	if (heap[address] == 0) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
 void GHeap::setParent(int address, int value) {
 	heap[address] = value;
 }
 
-void GHeap::setChildren(int parentAddress, int child1, int child2) {
-	heap[(parentAddress + 1) * 2 - 1] = child1;
-	heap[(parentAddress + 1) * 2] = child2;
+void GHeap::setChild1(int address, int value) {
+	heap[(address + 1) * 2 - 1] = value;
+}
+
+void GHeap::setChild2(int address, int value) {
+	heap[(address + 1) * 2] = value;
 }

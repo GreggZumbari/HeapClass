@@ -10,7 +10,8 @@ int getChild1(int) - Returns the first child of a parent.
 int getChild2 (int) - Returns the second child of a parent
 bool isEmpty(int) - Returns true if the address does not contain a value
 void setParent(int, int) - Sets the value at the address of the first int to be the value of the second int. This should only be needed for the first value, which isn't a child of anything.
-void setChildren(int, int, int) - Sets the children of the address at the first int to be the values of the second and third ints.
+void setChild1(int, int) - Sets the first child of the address at the first int to be the value of the second int.
+void setChild2(int, int) - Sets the second child of the address at the first int to be the value of the second int.
 
 @author Greggory Hickman, February 2020
 @version dev
@@ -33,7 +34,8 @@ class GHeap {
 		int getChild2(int);
 		bool isEmpty(int);
 		void setParent(int, int);
-		void setChildren(int, int, int);
+		void setChild1(int, int);
+		void setChild2(int, int);
 		
 	private:
 		int LENGTH;
