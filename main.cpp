@@ -12,7 +12,7 @@ char* getInput(bool&) - Asks for and returns the user's input either through the
 void clearCString(char*&, int) - Clears a cstring of preallocated ram from random other things of length "len". There's probably already something else out there that does this exact thing, but this was really easy to make so I don't care.
 
 @author Greggory Hickman, March 2020
-@version dev
+@version 1.0
  */
 
 #include <iostream>
@@ -22,8 +22,8 @@ void clearCString(char*&, int) - Clears a cstring of preallocated ram from rando
 
 #include "GHeap.h"
 
-#define LEN 10
-#define BIGLEN 10000
+#define LEN 101 //If it's at exactly 100, sometimes seg faults happen
+#define BIGLEN 30000
 
 using namespace std;
 
@@ -39,13 +39,12 @@ int main() {
 	//Define some variables and objects that we will need throughout the program
 	bool quit = false;
 	
-	char* numList = new char[BIGLEN];
+	char* numList;
 	
 	cout << "Welcome to Gregg\'s fabulous heap program" << endl;
 	
 	//The loop that the majority of the program takes place in
 	while (!quit) {
-		clearCString(numList, BIGLEN); //Clear ram from numList
 		numList = getInput(quit); //Get the input from the user using a series of prompts
 		//Quit if the quit command was run inside of getInput()
 		if (quit) {
@@ -72,13 +71,16 @@ int main() {
 	return 0;
 }
 
-void insertToken(GHeap& heap, int address, int newToken) {
+void insertToken(GHeap* heap, int address, int newToken) {
+	//cout << "New Token: " << newToken << ", ";
+	//printHeap(heap);
+	
 	//Replace the current token at address with input[i]
 	int oldToken = heap->getParent(address);
 	heap->setParent(address, newToken);
 	
 	//Start the cycle again if necesary
-	//If the old token wasn't 0
+	//If the old token wasn't 0 (this is here because without it, the zeroes all the way down the chain would compare themselves to each other needlessly, which would be super-mega inefficient)
 	if (oldToken != 0) {
 		//If either child doesn't exist yet, set the oldToken as the new child
 		if (heap->getChild1(address) == 0) {
@@ -91,37 +93,32 @@ void insertToken(GHeap& heap, int address, int newToken) {
 		}
 		
 		//Otherwise, start the cycle again
-		insertToken(heap, address, oldToken);
+		insertToken(heap, (address + 1) * 2 - 1, oldToken);
 	}
 }
 
 GHeap maxHeapSort(int* input) {
 	
-	GHeap heap(LEN);
+	GHeap heap(BIGLEN);
 	//For future reference, the "boss parent" is the very first node; the one which all others lead back to
-	//(address + 1) * 2 - 1
+	//
 	//For every token in input...
 	for (int i = 0; input[i] != 0; i++) { //i is iterator for input
 		for (int j = 0; j < LEN; j++) { //j is iterator for heap
 			//... and go through the heap from left to right until a token of lower magnitude than the current number from input is found.
 			//At which point replace the new token with the old, then recursively sort down the tree from that point.
 			if (input[i] >= heap.getParent(j)) {
-				
 				//Sort the new token and all of its children
-				insertToken(heap, j, input[i]);
+				insertToken(&heap, j, input[i]);
 				break;
-				
-				
 			}
 		}
 	}
 	
-	
-	
 	return heap;
 }
 
-void printHeap(GHeap *heap) {
+void printHeap(GHeap* heap) {
 	//A semi-okay method for displaying the heap
 	/*
 	cout << "&heap in printHeap" << heap.heap << endl;
@@ -150,22 +147,42 @@ void printHeap(GHeap *heap) {
 	int limit = -1;
 	int generation = 0;
 	bool even = true;
+	cout << "Note: Numbers that come from the same parent are held together by parentheses, e.g. (4 2)." << endl;
+	
 	cout << "Heap Tree: ";
 	//An algorithm for separating the generations properly
-	for (int i = 0; i < LEN; i++) {
+	for (int i = 0; i < BIGLEN; i++) {
+		//If there are no more tokens, then just stop printing empty slots
+		if (i > heap->getHighest()) {
+			break;
+		}
 		//If generation is over, start a new line
 		if (i + 2 >= limit * 2 + 1) {
 			cout << endl;
 			cout << "Generation " << ++generation << ": "; //Announce the new generation
 			limit = i + 1;
 		}
+		//If the token is not empty, print it to console.
 		if (!heap->isEmpty(i)) {
-			cout << heap->getParent(i) << " ";
+			//If the token address is odd or if it is the master parent, put an open parenthesis before it
+			if (!even || generation == 1) {
+				cout << "(";
+			}
+			
+			cout << heap->getParent(i);
+			
+			//If the token address is even, put a close parenthesis after it, and indent the next set
+			//Or if the token address is odd but the token has no sibbling, put a close parenthesis after it as well
+			if (even || heap->isEmpty(i + 1)) { 
+				cout << ")";
+			}
 		}
-		//If number is even. If this is the case, then the next element in the heap is not a sibling of the current one, and must be visually separated.
-		if (even) {
-			cout << "  ";
+		//If the token is empty, but the generation is not over (so that any gaps in between child groups don't cause parent-child mix up visually)
+		else {
+			cout << "()";
 		}
+		
+		cout << " ";
 		even = !even; //Reverse polarity of even
 	}
 	cout << endl << endl;
@@ -189,9 +206,14 @@ int* parseInput(char* numList) {
 	//Parse the input
 	int j = 0; //Iterator for current
 	int k = 0; //Iterator for numStream
-	for (int i = 0; i < strlen(numList) + 1; i++) {
+	for (int i = 0; i < BIGLEN + 1; i++) {
+		//If we have hit the 100 number max limit
+		if (k >= LEN - 1) {
+			break;
+		}
 		//If is number
 		if (numList[i] >= 48 && numList[i] <= 57) {
+			//Add the digit to the end of the current multi-digit number
 			current[j] = numList[i];
 			j++;
 		}
@@ -264,7 +286,7 @@ char* getInput(bool& quit) {
 			
 			//Read in the input from console and put it into numList
 			cout << "Console> ";
-			cin.getline(numList, LEN);
+			cin.getline(numList, BIGLEN);
 	
 			//At this point, we have our input (numList). Now, let's confirm that it's what the user wants.
 			cout << "Input: " << numList << endl;
@@ -294,7 +316,7 @@ char* getInput(bool& quit) {
 			
 			if (fin != NULL) {
 				//Put the contents of the file into numList
-				fgets(numList, LEN, fin);
+				fgets(numList, BIGLEN, fin);
 				
 				//At this point, we have our input (numList). Now, let's confirm that it's what the user wants before we ship it back out to the main method
 				cout << "Input: " << numList << endl;

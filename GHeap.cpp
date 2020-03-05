@@ -11,26 +11,37 @@ GHeap::GHeap(int LENGTH) {
 	for (int i = 0; i < LENGTH; i++) {
 		heap[i] = 0;
 	}
+	
+	highest = 0;
 }
 
 GHeap::~GHeap() {
 	delete(heap);
 }
 
-int* GHeap::getRaw() {
-	return heap;
+int GHeap::getHighest() {
+	return highest;
 }
 
 int GHeap::getParent(int address) {
-	return heap[address];
+	if (address < LENGTH) {
+		return heap[address];
+	}
+	return -1; //Return -1 if the program tries to access an address which isn't allocated in memory
 }
 
 int GHeap::getChild1(int address) {
-	return heap[(address + 1) * 2 - 1];
+	if ((address + 1) * 2 - 1 < LENGTH) {
+		return heap[(address + 1) * 2 - 1];
+	}
+	return -1; //Return -1 if the program tries to access an address which isn't allocated in memory
 }
 		
 int GHeap::getChild2(int address) {
-	return heap[(address + 1) * 2];
+	if ((address + 1) * 2 < LENGTH) {
+		return heap[(address + 1) * 2];
+	}
+	return -1; //Return -1 if the program tries to access an address which isn't allocated in memory
 }
 
 bool GHeap::isEmpty(int address) {
@@ -43,13 +54,33 @@ bool GHeap::isEmpty(int address) {
 }
 
 void GHeap::setParent(int address, int value) {
-	heap[address] = value;
+	if (address < LENGTH) {
+		//Set that value
+		heap[address] = value;
+		
+		//Update highest if necesary
+		if (address > highest) {
+			highest = address;
+		}
+	}
 }
 
 void GHeap::setChild1(int address, int value) {
-	heap[(address + 1) * 2 - 1] = value;
+	if ((address + 1) * 2 - 1 < LENGTH) {
+		heap[(address + 1) * 2 - 1] = value;
+		
+		if ((address + 1) * 2 - 1 > highest) {
+			highest = (address + 1) * 2 - 1;
+		}
+	}
 }
 
 void GHeap::setChild2(int address, int value) {
-	heap[(address + 1) * 2] = value;
+	if ((address + 1) * 2 < LENGTH) {
+		heap[(address + 1) * 2] = value;
+		
+		if ((address + 1) * 2 > highest) {
+			highest = (address + 1) * 2;
+		}
+	}
 }
